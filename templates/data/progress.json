@@ -1,0 +1,80 @@
+{
+  "relu": {
+    "status": "solved",
+    "attempts": 9,
+    "solved_at": "2026-05-06T22:56:13.972814",
+    "best_time": 0.014308816054835916
+  },
+  "softmax": {
+    "status": "solved",
+    "attempts": 3,
+    "solved_at": "2026-05-06T23:02:39.734999",
+    "best_time": 0.0010145900305360556
+  },
+  "linear": {
+    "status": "solved",
+    "solved_at": "2026-05-11T07:49:19.173307",
+    "best_time": 0.0008598589338362217,
+    "attempts": 6
+  },
+  "layernorm": {
+    "status": "solved",
+    "attempts": 3,
+    "solved_at": "2026-05-08T03:46:10.363003",
+    "best_time": 0.008843019953928888
+  },
+  "attention": {
+    "status": "solved",
+    "solved_at": "2026-05-08T22:08:01.106818",
+    "best_time": 0.2271373108960688,
+    "attempts": 1
+  },
+  "dropout": {
+    "status": "solved",
+    "solved_at": "2026-05-08T22:14:31.546372",
+    "best_time": 0.10548341099638492,
+    "attempts": 1
+  },
+  "cross_entropy": {
+    "status": "solved",
+    "attempts": 2,
+    "solved_at": "2026-05-09T03:59:54.832094",
+    "best_time": 0.14776200207415968
+  },
+  "embedding": {
+    "status": "solved",
+    "solved_at": "2026-05-11T05:26:43.272214",
+    "best_time": 0.13174985395744443,
+    "attempts": 1
+  },
+  "gelu": {
+    "status": "solved",
+    "solved_at": "2026-05-11T06:01:44.770988",
+    "best_time": 0.0015790320467203856,
+    "attempts": 6
+  },
+  "gradient_clipping": {
+    "status": "solved",
+    "attempts": 8,
+    "solved_at": "2026-05-11T07:45:02.787850",
+    "best_time": 0.0043089441023766994
+  },
+  "weight_init": {
+    "status": "solved",
+    "attempts": 11,
+    "solved_at": "2026-05-11T08:34:24.121997",
+    "best_time": 0.002906165784224868
+  },
+  "gradient_accumulation": {
+    "status": "solved",
+    "attempts": 9,
+    "solved_at": "2026-05-17T23:57:48.629890",
+    "best_time": 0.0023747009690850973
+  },
+  "linear_regression": {
+    "status": "solved",
+    "attempts": 3,
+    "solved_at": "2026-05-18T21:13:47.692170",
+    "best_time": 0.3345020299893804
+  }
+}
