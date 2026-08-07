@@ -37,9 +37,9 @@
   },
   "cross_entropy": {
     "status": "solved",
-    "attempts": 2,
-    "solved_at": "2026-05-09T03:59:54.832094",
-    "best_time": 0.14776200207415968
+    "attempts": 4,
+    "solved_at": "2026-06-19T17:11:19.756853",
+    "best_time": 0.008183046709746122
   },
   "embedding": {
     "status": "solved",
@@ -61,9 +61,9 @@
   },
   "weight_init": {
     "status": "solved",
-    "attempts": 11,
-    "solved_at": "2026-05-11T08:34:24.121997",
-    "best_time": 0.002906165784224868
+    "attempts": 13,
+    "solved_at": "2026-06-19T16:56:57.238198",
+    "best_time": 0.0028075696900486946
   },
   "gradient_accumulation": {
     "status": "solved",
@@ -94,5 +94,41 @@
     "attempts": 7,
     "solved_at": "2026-05-25T02:00:20.137143",
     "best_time": 0.0025631720200181007
+  },
+  "conv2d": {
+    "status": "solved",
+    "solved_at": "2026-06-19T18:35:13.360057",
+    "best_time": 0.003941240720450878,
+    "attempts": 3
+  },
+  "cross_attention": {
+    "status": "solved",
+    "attempts": 9,
+    "solved_at": "2026-06-26T03:53:32.404006",
+    "best_time": 0.003322198987007141
+  },
+  "mha": {
+    "status": "solved",
+    "solved_at": "2026-08-05T04:08:54.076630",
+    "best_time": 0.003963730996474624,
+    "attempts": 11
+  },
+  "causal_attention": {
+    "status": "solved",
+    "solved_at": "2026-08-04T03:59:28.951610",
+    "best_time": 0.0020518219971563667,
+    "attempts": 3
+  },
+  "gqa": {
+    "status": "solved",
+    "solved_at": "2026-08-05T04:12:32.176514",
+    "best_time": 0.0039059239788912237,
+    "attempts": 3
+  },
+  "sliding_window": {
+    "status": "solved",
+    "solved_at": "2026-08-05T04:26:36.148128",
+    "best_time": 0.0037328489997889847,
+    "attempts": 2
   }
 }
