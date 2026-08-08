@@ -25,9 +25,9 @@
   },
   "attention": {
     "status": "solved",
-    "solved_at": "2026-05-08T22:08:01.106818",
-    "best_time": 0.2271373108960688,
-    "attempts": 1
+    "solved_at": "2026-08-08T00:00:05.070054",
+    "best_time": 0.16501736198551953,
+    "attempts": 2
   },
   "dropout": {
     "status": "solved",
@@ -130,5 +130,35 @@
     "solved_at": "2026-08-05T04:26:36.148128",
     "best_time": 0.0037328489997889847,
     "attempts": 2
+  },
+  "linear_attention": {
+    "status": "solved",
+    "solved_at": "2026-08-07T19:14:52.073032",
+    "best_time": 0.006114483985584229,
+    "attempts": 13
+  },
+  "kv_cache": {
+    "status": "solved",
+    "solved_at": "2026-08-08T00:19:45.047604",
+    "best_time": 0.005622307944577187,
+    "attempts": 3
+  },
+  "rope": {
+    "status": "solved",
+    "solved_at": "2026-08-08T02:09:47.926496",
+    "best_time": 0.0024536739801988006,
+    "attempts": 3
+  },
+  "lora": {
+    "status": "solved",
+    "attempts": 5,
+    "solved_at": "2026-08-09T01:47:07.331276",
+    "best_time": 0.002617496997117996
+  },
+  "gpt2_block": {
+    "status": "solved",
+    "attempts": 5,
+    "solved_at": "2026-08-09T04:42:45.066176",
+    "best_time": 0.005234369891695678
   }
 }
