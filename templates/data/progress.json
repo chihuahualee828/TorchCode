@@ -160,5 +160,17 @@
     "attempts": 5,
     "solved_at": "2026-08-09T04:42:45.066176",
     "best_time": 0.005234369891695678
+  },
+  "moe": {
+    "status": "solved",
+    "solved_at": "2026-08-23T02:21:12.665717",
+    "best_time": 0.0036548899952322245,
+    "attempts": 11
+  },
+  "adam": {
+    "status": "solved",
+    "attempts": 9,
+    "solved_at": "2026-08-25T01:13:14.569361",
+    "best_time": 0.0028283381834626198
   }
 }
