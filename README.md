@@ -27,7 +27,7 @@ Practice implementing operators and architectures from scratch — the exact ski
 [![GitHub stars](https://img.shields.io/github/stars/duoan/TorchCode?style=social)](https://github.com/duoan/TorchCode)
 [![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-TorchCode-blue?style=flat-square&logo=github)](https://ghcr.io/duoan/torchcode)
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-TorchCode-blue?style=flat-square)](https://huggingface.co/spaces/duoan/TorchCode)
-![Problems](https://img.shields.io/badge/problems-41-orange?style=flat-square)
+![Problems](https://img.shields.io/badge/problems-43-orange?style=flat-square)
 ![GPU](https://img.shields.io/badge/GPU-not%20required-brightgreen?style=flat-square)
 
 [![Star History Chart](https://api.star-history.com/svg?repos=duoan/TorchCode&type=Date)](https://star-history.com/#duoan/TorchCode&Date)
@@ -44,7 +44,7 @@ TorchCode gives you a **structured practice environment** with:
 
 | | Feature | |
 |---|---|---|
-| 🧩 | **41 curated problems** | The most frequently asked PyTorch interview topics |
+| 🧩 | **43 curated problems** | The most frequently asked PyTorch interview topics |
 | ⚖️ | **Automated judge** | Correctness checks, gradient verification, and timing |
 | 🎨 | **Instant feedback** | Colored pass/fail per test case, just like competitive programming |
 | 💡 | **Hints when stuck** | Nudges without full spoilers |
@@ -199,6 +199,26 @@ If you're interviewing for any role touching LLMs or Transformers, expect at lea
 | 38 | [GRPO Loss](templates/38_grpo_loss.ipynb) <a href="https://colab.research.google.com/github/chihuahualee828/TorchCode/blob/master/templates/38_grpo_loss.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `grpo_loss(logps, rewards, group_ids, eps)` | ![Hard](https://img.shields.io/badge/Hard-F44336?style=flat-square) | 💡 | Group relative policy optimization, RLAIF, within-group normalized advantages |
 | 39 | [PPO Loss](templates/39_ppo_loss.ipynb) <a href="https://colab.research.google.com/github/chihuahualee828/TorchCode/blob/master/templates/39_ppo_loss.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `ppo_loss(new_logps, old_logps, advantages, clip_ratio)` | ![Hard](https://img.shields.io/badge/Hard-F44336?style=flat-square) | 💡 | PPO clipped surrogate loss, policy gradient, trust region |
 | 41 | [OPD Loss](templates/41_opd_loss.ipynb) <a href="https://colab.research.google.com/github/chihuahualee828/TorchCode/blob/master/templates/41_opd_loss.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `opd_loss(student_logits, teacher_logits, ...)` | ![Hard](https://img.shields.io/badge/Hard-F44336?style=flat-square) | 💡 | On-policy distillation, reverse KL, multi-teacher alignment |
+
+---
+
+## 🎓 Final Assignment — Build, train, and chat with your own LLM
+
+| # | Assignment | Deliverable | Solution |
+|---|------------|-------------|----------|
+| 42 | [Decoder-only LLM](templates/42_mini_llm.ipynb) | Complete multi-layer model with RoPE, GQA, RMSNorm, SwiGLU and tied embeddings; export `mini_llm.py` | [Reference](solutions/42_mini_llm_solution.ipynb) |
+| 43 | [Training and chat](templates/43_llm_training.ipynb) | Import your model; implement shifted loss, token-weighted accumulation, clipped updates and greedy generation; run training, checkpoints and multi-turn chat | [Reference](solutions/43_llm_training_solution.ipynb) |
+
+Run 42 before 43 in the same working directory. Both include `check(...)` cells
+with deterministic CPU numerical and behavioral checks. The baseline permits
+basic PyTorch layers, normalization, softmax, cross-entropy and optimizers.
+Use an editable install of this checkout (`pip install -e .`) for these new tasks.
+
+[Dataset files and download instructions](datasets/llm/README.md) include an
+offline toy conversation corpus and optional larger pretraining/SFT corpora.
+The toy CPU experiment teaches the full pipeline and narrow replies; broad
+language ability requires substantially more data and compute. The longer
+training project is additional to the interview study plan below.
 
 ---
 

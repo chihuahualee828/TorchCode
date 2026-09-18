@@ -1,0 +1,13 @@
+{"messages": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello!"}]}
+{"messages": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hi!"}]}
+{"messages": [{"role": "user", "content": "Bye"}, {"role": "assistant", "content": "Goodbye!"}]}
+{"messages": [{"role": "user", "content": "Thanks"}, {"role": "assistant", "content": "You are welcome."}]}
+{"messages": [{"role": "user", "content": "What is your name?"}, {"role": "assistant", "content": "I am Torch."}]}
+{"messages": [{"role": "user", "content": "What is two plus two?"}, {"role": "assistant", "content": "Four."}]}
+{"messages": [{"role": "user", "content": "Name a color."}, {"role": "assistant", "content": "Blue."}]}
+{"messages": [{"role": "user", "content": "Name an animal."}, {"role": "assistant", "content": "A cat."}]}
+{"messages": [{"role": "user", "content": "What do plants need?"}, {"role": "assistant", "content": "Water and light."}]}
+{"messages": [{"role": "user", "content": "What is ice?"}, {"role": "assistant", "content": "Frozen water."}]}
+{"messages": [{"role": "user", "content": "Say yes."}, {"role": "assistant", "content": "Yes."}]}
+{"messages": [{"role": "user", "content": "Say no."}, {"role": "assistant", "content": "No."}]}
+{"messages": [{"role": "user", "content": "My name is Ada."}, {"role": "assistant", "content": "Hello, Ada."}, {"role": "user", "content": "What is my name?"}, {"role": "assistant", "content": "Ada."}]}
