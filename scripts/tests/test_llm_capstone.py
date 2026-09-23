@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 import torch
 from torch_judge.capstone import deterministic, ByteTokenizer, TextDataset, read_jsonl
-from torch_judge.capstone.grading import model_case, training_case
+from torch_judge.capstone.grading import model_case, training_case, cache_case
 from torch_judge.tasks import get_task
 
 
@@ -44,6 +44,25 @@ def must_fail(action):
     raise AssertionError('Negative control unexpectedly passed')
 
 
+def renamed_mini_llm():
+    """The model checker must not depend on the reference attribute names."""
+    source = Path('mini_llm_reference.py').read_text()
+    replacements = [
+        ('self.embed_tokens', 'self.word_table'), ('self.layers', 'self.tower'),
+        ('self.attn_norm', 'self.normal_a'), ('self.ffn_norm', 'self.normal_b'),
+        ('self.q_proj', 'self.question'), ('self.k_proj', 'self.key'),
+        ('self.v_proj', 'self.value'), ('self.o_proj', 'self.merge'),
+        ('self.gate_proj', 'self.gate'), ('self.up_proj', 'self.expand'),
+        ('self.down_proj', 'self.compress'), ('self.lm_head', 'self.vocab_head'),
+        ('self.norm', 'self.output_norm'),
+    ]
+    for old, new in replacements:
+        source = source.replace(old, new)
+    namespace = {}
+    exec(compile(source, '<renamed_mini_llm>', 'exec'), namespace)
+    return namespace['MiniLLM']
+
+
 def main():
     previous = Path.cwd()
     with tempfile.TemporaryDirectory() as tmp:
@@ -55,6 +74,7 @@ def main():
             execute(ROOT / 'solutions/43_llm_training_solution.ipynb', ns)
             for _ in range(2):
                 total = judge('mini_llm', ns['MiniLLM']) + judge('llm_training', ns['LLMTrainer'])
+            assert judge('mini_llm', renamed_mini_llm()) == len(get_task('mini_llm')['tests'])
             model, optimizer, history = ns['run_training']()
             assert history == ns['history'], 'Training history must repeat exactly'
             for k, v in model.state_dict().items():
@@ -84,15 +104,34 @@ def main():
             assert set(map(str, records)).isdisjoint(map(str, read_jsonl('datasets/llm/validation.jsonl')))
             import mini_llm_reference as module
             original_rope = module.apply_rope
-            module.apply_rope = lambda x, base: x
+            module.apply_rope = lambda x, base, offset=0: x
             must_fail(lambda: model_case(ns['MiniLLM'], 'forward'))
             module.apply_rope = original_rope
+            module.apply_rope = lambda x, base, offset=0: original_rope(x, base, 0)
+            must_fail(lambda: cache_case(ns['MiniLLM'], 'gqa'))
+            module.apply_rope = original_rope
+            # A multi-token cached chunk must mask its own future positions.
+            source = Path('mini_llm_reference.py').read_text()
+            bad_mask = 'mask = key_positions[None, :] > query_positions[:, None]'
+            assert bad_mask in source
+            broken = {}
+            exec(source.replace(bad_mask, 'mask = torch.zeros(s, offset + s, dtype=torch.bool)'), broken)
+            must_fail(lambda: cache_case(broken['MiniLLM'], 'gqa'))
+            # Recomputing the prefix can give correct logits but is not incremental work.
+            class Recomputing(ns['MiniLLM']):
+                def forward(self, input_ids, past_key_values=None, use_cache=False):
+                    if past_key_values is not None:
+                        super().forward(self.prompt)
+                    else:
+                        self.prompt = input_ids
+                    return super().forward(input_ids, past_key_values, use_cache)
+            must_fail(lambda: cache_case(Recomputing, 'work'))
             class Unshifted(ns['LLMTrainer']):
                 @staticmethod
                 def loss(logits, labels):
                     return torch.nn.functional.cross_entropy(logits.reshape(-1, logits.size(-1)), labels.reshape(-1), ignore_index=-100)
             must_fail(lambda: training_case(Unshifted, 'loss'))
-            print(f'PASS: {total} judge cases twice; full training twice; checkpoint/chat; data; negative controls')
+            print(f'PASS: {total} judge cases twice; renamed model; full training twice; checkpoint/chat; data; negative controls')
         finally:
             os.chdir(previous)
             sys.path.remove(tmp)

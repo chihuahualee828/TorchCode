@@ -3,8 +3,8 @@
 TASK = {'title': 'Final Assignment: Decoder-only LLM',
  'difficulty': 'Hard',
  'function_name': 'MiniLLM',
- 'hint': 'Follow the exact notebook contract; inspect shifted targets, RoPE pair ordering, and '
-         'causal head dimensions.',
+ 'hint': 'Follow the architecture contract: pre-norm residuals, RoPE Q/K, causal GQA, SwiGLU, '
+         'and tied vocabulary weights. Component names are your choice.',
  'tests': [{'name': 'Structure',
             'code': 'from torch_judge.capstone.grading import model_case\n'
                     "model_case({fn}, 'structure')"},
@@ -36,3 +36,20 @@ TASK = {'title': 'Final Assignment: Decoder-only LLM',
            {'name': 'Batch',
             'code': 'from torch_judge.capstone.grading import model_case\n'
                     "model_case({fn}, 'batch')"}]}
+
+TASK['tests'] += [
+    {'name': 'KV cache: ' + name,
+     'code': 'from torch_judge.capstone.grading import cache_case\n'
+             + 'cache_case({fn}, ' + repr(case) + ')'}
+    for name, case in [
+        ('GQA prefill and chunk equivalence', 'gqa'),
+        ('MHA equivalence', 'mha'),
+        ('MQA equivalence', 'mqa'),
+        ('rotated K and unrotated V', 'contents'),
+        ('reuse without mutation or conversation leakage', 'reuse'),
+        ('only project new tokens', 'work'),
+        ('total context limit', 'limits'),
+        ('invalid cache validation', 'invalid'),
+        ('identical greedy tokens', 'greedy'),
+    ]
+]
