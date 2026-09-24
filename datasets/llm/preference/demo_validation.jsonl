@@ -1,0 +1,2 @@
+{"prompt": [{"role": "user", "content": "Thanks"}], "chosen": "You are welcome.", "rejected": "Goodbye!"}
+{"prompt": [{"role": "user", "content": "What is ice?"}], "chosen": "Frozen water.", "rejected": "A cat."}

@@ -1,10 +1,9 @@
 """Capstone task; fixed CPU numerical checks."""
 
-TASK = {'title': 'Final Assignment: Train and Chat',
+TASK = {'title': 'Final Assignment: Raw-text pretraining',
  'difficulty': 'Hard',
  'function_name': 'LLMTrainer',
- 'hint': 'Follow the exact notebook contract; inspect shifted targets, RoPE pair ordering, and '
-         'causal head dimensions.',
+ 'hint': 'Shift targets exactly once; weight accumulated gradients by valid token count.',
  'tests': [{'name': 'Loss',
             'code': 'from torch_judge.capstone.grading import training_case\n'
                     "training_case({fn}, 'loss')"},

@@ -1,89 +1,60 @@
-# Data for the final LLM assignments
+# Small datasets for the three LLM training stages
 
-`train.jsonl` (13 conversations) and `validation.jsonl` (2 conversations) are original,
-fixed educational examples authored for TorchCode. They are released under CC0-1.0.
-They include greetings, simple questions, and a multi-turn name recall example.
-They are deliberately tiny: use them to debug, overfit, and demonstrate narrow replies.
-Held-out loss on two examples is not a meaningful general-language benchmark.
-The supplied `prepare_demo` helper can recreate these fixtures offline in local,
-Docker, or Colab notebook working directories. It preserves existing files.
+The notebooks run offline with tiny, original `demo_*.jsonl` fixtures. They check the
+pipeline, not language quality. For a more meaningful experiment, **manually** download
+one source file per stage. No notebook or judge downloads data. The same byte tokenizer,
+model configuration and model weights must continue across all three stages.
 
-Each line is one of:
+| Stage | Manual download | Save as | Approx. size | Source license |
+|---|---|---|---:|---|
+| 43 pretrain | [TinyStories V2 GPT-4 story file](https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStoriesV2-GPT4-valid.txt?download=true) | `pretrain/raw/TinyStoriesV2-GPT4-valid.txt` | 22.5 MB | CDLA-Sharing-1.0 |
+| 44 SFT | [No Robots train Parquet](https://huggingface.co/datasets/HuggingFaceH4/no_robots/resolve/main/data/train-00000-of-00001.parquet?download=true) | `sft/raw/train-00000-of-00001.parquet` | 10.5 MB | CC BY-NC 4.0 |
+| 45 DPO | [UltraFeedback binarized preference Parquet](https://huggingface.co/datasets/HuggingFaceH4/ultrafeedback_binarized/resolve/main/data/test_prefs-00000-of-00001.parquet?download=true) | `preference/raw/test_prefs-00000-of-00001.parquet` | 7.29 MB | MIT |
+
+The TinyStories file is the publisher's *validation* file and the UltraFeedback file is
+its *test_prefs* split. Here they are repurposed as small **source pools**, then split
+locally into training and validation. Do not report scores against the publishers'
+original validation/test splits as held-out benchmarks. The converter groups by
+story/prompt ID before splitting and records the source SHA-256 in `manifest.json`.
+The original SFT fixture has 13 training and two validation conversations.
+
+From the repository root, after placing the downloads at the paths above:
+
+```bash
+python scripts/prepare_llm_data.py pretrain
+python -m pip install pyarrow  # only needed for the two Parquet conversions
+python scripts/prepare_llm_data.py sft
+python scripts/prepare_llm_data.py preference
+```
+
+The converter writes `train.jsonl` and `validation.jsonl` beside each stage's `raw/`
+folder. These external files and `artifacts/llm/` checkpoints are gitignored. Each
+notebook automatically uses the converted split when present, otherwise its offline
+demo split. Use `--limit N` to convert fewer examples or `--force` to replace a
+previous conversion. Inspect the records, truncation rate and source licenses before
+long training runs.
+
+For a longer TinyStories experiment, change the configuration in notebook 43
+*before* training—for example, `d_model=256`, `num_layers=4`, `num_heads=8`,
+`num_kv_heads=2`, `hidden_dim=768`, `max_seq_len=512`—and run enough optimizer
+steps to see held-out loss improve. Notebook 44 and 45 load that saved config
+without changing tokenizer or context. This is a few-million-parameter model;
+GPU time is recommended, and coherent simple-story snippets are a reasonable
+experiment goal, not guaranteed general understanding or chat. The notebook's
+small default keeps the offline exercise fast and its samples may be nonsense.
+
+The JSONL schemas are:
 
 ```json
-{"text": "A document for next-token pretraining."}
+{"text": "A document of natural language for next-token pretraining."}
 {"messages": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello!"}]}
+{"prompt": [{"role": "user", "content": "Hi"}], "chosen": "Hello!", "rejected": "Goodbye!"}
 ```
 
-Use one complete document/conversation per record; a conversation must end with an
-assistant turn. Supported roles are system, user and assistant. Split before
-encoding; never use validation records for updates or tokenizer fitting.
-The byte tokenizer has a fixed vocabulary and needs no fitting.
-
-## Larger language and chat corpora (optional downloads)
-
-- [TinyStories dataset and download files](https://huggingface.co/datasets/roneneldan/TinyStories):
-  English short stories for language-model pretraining; dataset card lists CDLA-Sharing-1.0.
-  Stories alone do not teach assistant dialogue formatting.
-- [smol-smoltalk dataset and download files](https://huggingface.co/datasets/HuggingFaceTB/smol-smoltalk):
-  instruction conversations for subsequent supervised fine-tuning; consult its dataset
-  card and license for source attribution and use terms.
-
-Nothing large is downloaded by Run All or by the judge. Download only when ready
-for a longer experiment. The following optional conversion writes bounded subsets
-and records the immutable dataset revision and output checksums. Install the extra
-`datasets` and `huggingface_hub` packages in your training environment first.
-Run from the repository root, then point notebook 42 at the resulting files.
-
-```python
-import hashlib
-import json
-from pathlib import Path
-from datasets import load_dataset
-from huggingface_hub import HfApi
-
-out = Path('datasets/llm/external')
-out.mkdir(parents=True, exist_ok=True)
-manifest = {}
-for name, repo, kind in [
-    ('stories', 'roneneldan/TinyStories', 'text'),
-    ('chat', 'HuggingFaceTB/smol-smoltalk', 'messages'),
-]:
-    revision = HfApi().dataset_info(repo).sha
-    # First 10,200 records only; streaming avoids materializing the full corpus.
-    rows = load_dataset(repo, split='train', revision=revision, streaming=True)
-    seen, train, validation = set(), [], []
-    for row in rows:
-        record = {kind: row[kind]}
-        if kind == 'messages' and record[kind][-1]['role'] != 'assistant':
-            continue
-        text = json.dumps(record, ensure_ascii=False, sort_keys=True)
-        digest = hashlib.sha256(text.encode()).hexdigest()
-        if digest in seen:
-            continue
-        seen.add(digest)
-        (validation if len(validation) < 200 else train).append(text)
-        if len(train) == 10_000:
-            break
-    assert train and validation
-    files = {}
-    for split, data in [('train', train), ('validation', validation)]:
-        path = out / f'{name}_{split}.jsonl'
-        path.write_text('\n'.join(data) + '\n', encoding='utf-8')
-        files[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
-    manifest[name] = {'repo': repo, 'revision': revision, 'sha256': files}
-(out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-```
-
-Keep the manifest and reuse its revision for repeated downloads; resolving the
-latest revision again is a new experiment. This sequential split is an accessible
-starting point, not a representative benchmark; design a held-out evaluation for
-serious experiments and inspect duplicates/source grouping across larger corpora.
-
-Pretrain using `stories_train.jsonl`, then continue the same model on
-`chat_train.jsonl` at a smaller learning rate. Use their respective validation files.
-Increase the context window beyond 128 bytes, inspect truncation and dropped
-examples, and budget for larger models and many more training tokens. The example
-subset sizes are for pipeline exploration, not enough to promise a capable assistant.
-The graded baseline keeps the fixed byte tokenizer, architecture contract, CPU
-fixtures and greedy decoder independent of these external data versions.
+Pretraining predicts every next token in raw text. SFT predicts only assistant
+responses conditioned on prompts. DPO compares whole chosen/rejected completion
+log-probabilities against a frozen SFT reference. It does not need reward-model
+training or GRPO sampling. A 22.5 MB story file and a small decoder will not yield
+general human-language understanding; increase model capacity, context, data quality,
+training tokens and compute if your goal is fluent open-ended output. Use held-out
+loss/perplexity and generated samples to assess progress rather than a fixed answer.

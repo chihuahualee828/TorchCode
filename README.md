@@ -27,7 +27,7 @@ Practice implementing operators and architectures from scratch — the exact ski
 [![GitHub stars](https://img.shields.io/github/stars/duoan/TorchCode?style=social)](https://github.com/duoan/TorchCode)
 [![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-TorchCode-blue?style=flat-square&logo=github)](https://ghcr.io/duoan/torchcode)
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-TorchCode-blue?style=flat-square)](https://huggingface.co/spaces/duoan/TorchCode)
-![Problems](https://img.shields.io/badge/problems-43-orange?style=flat-square)
+![Problems](https://img.shields.io/badge/problems-45-orange?style=flat-square)
 ![GPU](https://img.shields.io/badge/GPU-not%20required-brightgreen?style=flat-square)
 
 [![Star History Chart](https://api.star-history.com/svg?repos=duoan/TorchCode&type=Date)](https://star-history.com/#duoan/TorchCode&Date)
@@ -44,7 +44,7 @@ TorchCode gives you a **structured practice environment** with:
 
 | | Feature | |
 |---|---|---|
-| 🧩 | **43 curated problems** | The most frequently asked PyTorch interview topics |
+| 🧩 | **45 curated problems** | The most frequently asked PyTorch interview topics |
 | ⚖️ | **Automated judge** | Correctness checks, gradient verification, and timing |
 | 🎨 | **Instant feedback** | Colored pass/fail per test case, just like competitive programming |
 | 💡 | **Hints when stuck** | Nudges without full spoilers |
@@ -202,23 +202,20 @@ If you're interviewing for any role touching LLMs or Transformers, expect at lea
 
 ---
 
-## 🎓 Final Assignment — Build, train, and chat with your own LLM
+## 🎓 Final Assignment — Build and train a decoder-only LLM
 
 | # | Assignment | Deliverable | Solution |
 |---|------------|-------------|----------|
-| 42 | [Decoder-only LLM](templates/42_mini_llm.ipynb) | Complete multi-layer model with RoPE, GQA, RMSNorm, SwiGLU and tied embeddings; export `mini_llm.py` | [Reference](solutions/42_mini_llm_solution.ipynb) |
-| 43 | [Training and chat](templates/43_llm_training.ipynb) | Import your model; implement shifted loss, token-weighted accumulation, clipped updates and greedy generation; run training, checkpoints and multi-turn chat | [Reference](solutions/43_llm_training_solution.ipynb) |
+| 42 | [Decoder-only LLM](templates/42_mini_llm.ipynb) | Implement the trainable causal model and KV cache | [Reference](solutions/42_mini_llm_solution.ipynb) |
+| 43 | [Raw-text pretraining](templates/43_llm_training.ipynb) | Train from random weights with next-token CE; save the base checkpoint | [Reference](solutions/43_llm_training_solution.ipynb) |
+| 44 | [Instruction SFT](templates/44_llm_sft.ipynb) | Continue the base model on assistant-only conversation targets | [Reference](solutions/44_llm_sft_solution.ipynb) |
+| 45 | [Preference DPO](templates/45_llm_dpo.ipynb) | Continue the SFT model using chosen/rejected pairs and a frozen reference | [Reference](solutions/45_llm_dpo_solution.ipynb) |
 
-Run 42 before 43 in the same working directory. Both include `check(...)` cells
-with deterministic CPU numerical and behavioral checks. The baseline permits
-basic PyTorch layers, normalization, softmax, cross-entropy and optimizers.
-Use an editable install of this checkout (`pip install -e .`) for these new tasks.
-
-[Dataset files and download instructions](datasets/llm/README.md) include an
-offline toy conversation corpus and optional larger pretraining/SFT corpora.
-The toy CPU experiment teaches the full pipeline and narrow replies; broad
-language ability requires substantially more data and compute. The longer
-training project is additional to the interview study plan below.
+Run the notebooks in order in the same working directory. Deterministic CPU checks
+cover each implementation. [The dataset guide](datasets/llm/README.md) gives small
+manual downloads for each stage; offline fixtures keep the notebooks runnable without
+network access. A tiny model and these small corpora are for learning the pipeline,
+not a promise of general language ability.
 
 ---
 

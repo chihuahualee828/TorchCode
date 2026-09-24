@@ -1,0 +1,6 @@
+{"prompt": [{"role": "user", "content": "Hi"}], "chosen": "Hello!", "rejected": "Goodbye!"}
+{"prompt": [{"role": "user", "content": "Bye"}], "chosen": "Goodbye!", "rejected": "Hello!"}
+{"prompt": [{"role": "user", "content": "What is your name?"}], "chosen": "I am Torch.", "rejected": "Four."}
+{"prompt": [{"role": "user", "content": "What is two plus two?"}], "chosen": "Four.", "rejected": "Blue."}
+{"prompt": [{"role": "user", "content": "Name a color."}], "chosen": "Blue.", "rejected": "A cat."}
+{"prompt": [{"role": "user", "content": "Say yes."}], "chosen": "Yes.", "rejected": "No."}

@@ -90,13 +90,14 @@ def encode_record(record, tokenizer, assistant_only=True):
 
 class TextDataset(Dataset):
     """One document/conversation per item; right pad, never mix split boundaries."""
-    def __init__(self, records, max_seq_len, assistant_only=True):
+    def __init__(self, records, max_seq_len, assistant_only=True, encoder=None):
         if max_seq_len < 2:
             raise ValueError('max_seq_len must be at least 2')
         self.items = []
         tok = ByteTokenizer()
         for record in records:
-            ids, labels = encode_record(record, tok, assistant_only)
+            ids, labels = (encoder(record, tok) if encoder is not None
+                           else encode_record(record, tok, assistant_only))
             ids, labels = ids[:max_seq_len], labels[:max_seq_len]
             if not any(x != -100 for x in labels[1:]):
                 continue  # Truncation removed all targets: never train on NaN loss.
@@ -105,6 +106,77 @@ class TextDataset(Dataset):
                                torch.tensor(labels + [-100] * pad)))
         if not self.items:
             raise ValueError('No supervised tokens; increase context or supply shorter records')
+
+    def __len__(self):
+        return len(self.items)
+
+    def __getitem__(self, index):
+        return self.items[index]
+
+
+class PretrainDataset(Dataset):
+    """Cover each raw-text document with non-overlapping next-token targets.
+
+    Adjacent windows share one context token, so no target is lost at a boundary.
+    Split documents into train/validation before constructing this dataset.
+    """
+    def __init__(self, records, max_seq_len):
+        if max_seq_len < 2:
+            raise ValueError('max_seq_len must be at least 2')
+        tok = ByteTokenizer()
+        self.items = []
+        for record in records:
+            if not isinstance(record.get('text'), str) or not record['text']:
+                raise ValueError('Pretraining records need nonempty text')
+            tokens = [tok.bos_id] + tok.encode(record['text']) + [tok.eos_id]
+            for start in range(0, len(tokens) - 1, max_seq_len - 1):
+                chunk = tokens[start:start + max_seq_len]
+                if len(chunk) < 2:
+                    continue
+                pad = max_seq_len - len(chunk)
+                self.items.append((torch.tensor(chunk + [tok.pad_id] * pad),
+                                   torch.tensor(chunk + [-100] * pad)))
+        if not self.items:
+            raise ValueError('No pretraining targets')
+
+    def __len__(self):
+        return len(self.items)
+
+    def __getitem__(self, index):
+        return self.items[index]
+
+
+class PreferenceDataset(Dataset):
+    """Chosen/rejected replies sharing an identical encoded prompt."""
+    def __init__(self, records, max_seq_len):
+        if max_seq_len < 4:
+            raise ValueError('max_seq_len must be at least 4')
+        tok = ByteTokenizer()
+        self.items = []
+        for record in records:
+            prompt = record['prompt']
+            if isinstance(prompt, str):
+                prompt = [{'role': 'user', 'content': prompt}]
+            if not prompt or prompt[-1]['role'] != 'user':
+                raise ValueError('Preference prompt must end with a user turn')
+            prefix = tok.prompt(prompt)
+            max_prefix = max_seq_len // 2
+            if len(prefix) > max_prefix:
+                prefix = [tok.bos_id] + prefix[-(max_prefix - 1):]
+            pair = []
+            for key in ('chosen', 'rejected'):
+                answer = record[key]
+                if not isinstance(answer, str) or not answer:
+                    raise ValueError('Preference replies must be nonempty strings')
+                completion = (tok.encode(answer) + [tok.eos_id])[:max_seq_len - len(prefix)]
+                ids = prefix + completion
+                labels = [-100] * len(prefix) + completion
+                pad = max_seq_len - len(ids)
+                pair.extend((torch.tensor(ids + [tok.pad_id] * pad),
+                             torch.tensor(labels + [-100] * pad)))
+            self.items.append(tuple(pair))
+        if not self.items:
+            raise ValueError('No preference pairs')
 
     def __len__(self):
         return len(self.items)

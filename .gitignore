@@ -18,3 +18,11 @@ labextension/node_modules/
 labextension/torchcode_labext/labextension/
 labextension/tsconfig.tsbuildinfo
 labextension/yarn.lock
+
+# Manually downloaded capstone corpora, converted splits and model checkpoints
+datasets/llm/*/raw/*
+!datasets/llm/*/raw/.gitkeep
+datasets/llm/*/train.jsonl
+datasets/llm/*/validation.jsonl
+datasets/llm/*/manifest.json
+artifacts/llm/

@@ -493,3 +493,175 @@ def training_case(cls, case):
         m.eval()
         assert torch.equal(out, cls.generate(m, prompt, n))
         assert not m.training, 'Restore eval mode'
+
+
+def sft_case(cls, case):
+    """Check assistant-only labels and prompt-consistent reply generation."""
+    from . import encode_record
+    with deterministic(514):
+        tok = ByteTokenizer()
+        messages = [{'role': 'system', 'content': 'Be brief.'},
+                    {'role': 'user', 'content': 'Hi'},
+                    {'role': 'assistant', 'content': 'Hello.'},
+                    {'role': 'user', 'content': 'Again?'},
+                    {'role': 'assistant', 'content': 'Yes.'}]
+        if case in ('encode', 'mask', 'multiturn'):
+            ids, labels = cls.encode_messages(messages, tok)
+            expected = encode_record({'messages': messages}, tok)
+            assert list(ids) == expected[0] and list(labels) == expected[1], 'Wrong SFT token/label sequence'
+            assert len(ids) == len(labels)
+            assert sum(x != -100 for x in labels) == len(tok.encode('Hello.')) + len(tok.encode('Yes.')) + 2
+            if case == 'mask':
+                assert labels[0] == -100 and labels[-1] == tok.eos_id
+                assert [-100] * len(tok.encode('user: ')) in [labels[i:i+len(tok.encode('user: '))] for i in range(len(labels))]
+            return
+        if case == 'invalid':
+            for bad in ([], messages[:-1], [{'role': 'tool', 'content': 'x'}, messages[-1]]):
+                try:
+                    cls.encode_messages(bad, tok)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError('Reject invalid conversation with ValueError')
+            return
+        prompt = [{'role': 'user', 'content': 'Hi'}]
+        expected_ids = tok.prompt(prompt)
+        class Scripted(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.config = SimpleNamespace(max_seq_len=80)
+                self.weight = torch.nn.Parameter(torch.zeros(1))
+                self.calls = 0
+            def forward(self, ids):
+                assert not self.training and not torch.is_grad_enabled()
+                assert ids[0, :len(expected_ids)].tolist() == expected_ids, 'Use the training-time assistant prompt'
+                token = [ord('O')+4, ord('K')+4, tok.eos_id][min(self.calls, 2)]
+                self.calls += 1
+                logits = torch.zeros(1, ids.size(1), tok.vocab_size)
+                logits[:, -1, token] = 10
+                return logits
+        model = Scripted()
+        if case == 'reply':
+            assert cls.reply(model, tok, prompt, max_new_tokens=5) == 'OK'
+            assert model.calls == 3 and model.training
+            model.eval()
+            model.calls = 0
+            assert cls.reply(model, tok, prompt, max_new_tokens=5) == 'OK'
+            assert not model.training
+        elif case == 'budget':
+            assert cls.reply(model, tok, prompt, max_new_tokens=0) == ''
+            assert model.calls == 0
+        elif case == 'invalid_reply':
+            for bad, budget in ((messages, 4), (prompt, -1)):
+                try:
+                    cls.reply(model, tok, bad, max_new_tokens=budget)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError('Reject invalid reply request')
+        else:
+            raise ValueError(case)
+
+
+def preference_case(cls, case):
+    """Check sequence sums, DPO gradients, policy updates and frozen reference."""
+    from . import PreferenceDataset
+    with deterministic(615):
+        tok = ByteTokenizer()
+        records = [{'prompt': 'Hi', 'chosen': 'Hello!', 'rejected': 'Bye!'},
+                   {'prompt': 'Yes?', 'chosen': 'Yes.', 'rejected': 'No.'}]
+        data = PreferenceDataset(records, 24)
+        batch = tuple(torch.stack([data[0][i], data[1][i]]) for i in range(4))
+        if case == 'dataset':
+            c_ids,c_labels,r_ids,r_labels = batch
+            prefix_len = int((c_labels[0] != -100).nonzero()[0])
+            assert torch.equal(c_ids[:, :prefix_len], r_ids[:, :prefix_len])
+            assert torch.equal(c_labels[c_ids == 0], torch.full_like(c_labels[c_ids == 0], -100))
+            assert c_labels[0].tolist().count(tok.eos_id) == 1
+            return
+        def expected_logps(model, ids, labels):
+            logits = model(ids)[:, :-1]
+            targets = labels[:, 1:]
+            token_logps = -F.cross_entropy(logits.transpose(1, 2), targets, reduction='none', ignore_index=-100)
+            return token_logps.sum(dim=-1)
+        if case in ('logps', 'masked_logps', 'logps_grad'):
+            model = ToyLM().double()
+            ids, labels = batch[:2]
+            actual = cls.sequence_logps(model, ids, labels)
+            expected = expected_logps(model, ids, labels)
+            assert actual.shape == (2,)
+            torch.testing.assert_close(actual, expected)
+            if case == 'masked_logps':
+                altered = ids.clone()
+                altered[labels == -100] = 0
+                # Padding is masked; prompt tokens still affect later predictions.
+                altered[ids != 0] = ids[ids != 0]
+                torch.testing.assert_close(cls.sequence_logps(model, altered, labels), actual)
+            if case == 'logps_grad':
+                ga = torch.autograd.grad(actual.sum(), model.head.weight, retain_graph=True)[0]
+                ge = torch.autograd.grad(expected.sum(), model.head.weight)[0]
+                torch.testing.assert_close(ga, ge)
+            return
+        if case in ('loss', 'loss_grad', 'beta'):
+            pi_c = torch.tensor([-.4, -.9], dtype=torch.double, requires_grad=True)
+            pi_r = torch.tensor([-1.2, -.7], dtype=torch.double, requires_grad=True)
+            ref_c = torch.tensor([-.8, -.5], dtype=torch.double, requires_grad=True)
+            ref_r = torch.tensor([-1.0, -.8], dtype=torch.double, requires_grad=True)
+            beta = .7 if case == 'beta' else .1
+            actual = cls.dpo_loss(pi_c, pi_r, ref_c, ref_r, beta)
+            expected = F.softplus(-beta * ((pi_c-pi_r)-(ref_c-ref_r))).mean()
+            torch.testing.assert_close(actual, expected)
+            if case == 'loss_grad':
+                ga = torch.autograd.grad(actual, (pi_c, pi_r), retain_graph=True)
+                ge = torch.autograd.grad(expected, (pi_c, pi_r))
+                for a,e in zip(ga,ge): torch.testing.assert_close(a,e)
+                reference_grads = torch.autograd.grad(actual, (ref_c, ref_r),
+                                                       retain_graph=True, allow_unused=True)
+                assert reference_grads == (None, None), 'Do not backpropagate through the reference'
+            return
+        if case == 'invalid':
+            for beta in (0, -1):
+                try: cls.dpo_loss(torch.zeros(1), torch.zeros(1), torch.zeros(1), torch.zeros(1), beta)
+                except ValueError: pass
+                else: raise AssertionError('beta must be positive')
+            try: cls.sequence_logps(ToyLM(), batch[0], torch.full_like(batch[1], -100))
+            except ValueError: pass
+            else: raise AssertionError('Reject empty response targets')
+            return
+        if case in ('update', 'reference', 'repeat'):
+            def run():
+                torch.manual_seed(616)
+                policy = ToyLM().double()
+                reference = copy.deepcopy(policy)
+                expected_policy = copy.deepcopy(policy)
+                expected_reference = copy.deepcopy(reference)
+                optimizer = torch.optim.AdamW(policy.parameters(), lr=.01)
+                expected_optimizer = torch.optim.AdamW(expected_policy.parameters(), lr=.01)
+                values = []
+                for _ in range(2):
+                    expected_optimizer.zero_grad(set_to_none=True)
+                    c_ids,c_labels,r_ids,r_labels = batch
+                    pi_c = expected_logps(expected_policy,c_ids,c_labels)
+                    pi_r = expected_logps(expected_policy,r_ids,r_labels)
+                    with torch.no_grad():
+                        ref_c = expected_logps(expected_reference,c_ids,c_labels)
+                        ref_r = expected_logps(expected_reference,r_ids,r_labels)
+                    expected = F.softplus(-.3*((pi_c-pi_r)-(ref_c-ref_r))).mean()
+                    expected.backward()
+                    torch.nn.utils.clip_grad_norm_(expected_policy.parameters(), .5)
+                    expected_optimizer.step()
+                    got = cls.train_step(policy,reference,optimizer,batch,beta=.3,max_norm=.5)
+                    assert isinstance(got,float) and abs(got-expected.item()) < 1e-9
+                    for a,b in zip(policy.parameters(),expected_policy.parameters()):
+                        torch.testing.assert_close(a,b,rtol=1e-7,atol=1e-9)
+                    for a,b in zip(reference.parameters(),expected_reference.parameters()):
+                        assert torch.equal(a,b) and a.grad is None, 'Reference must remain frozen'
+                    values.append(got)
+                return values, {k:v.clone() for k,v in policy.state_dict().items()}
+            first = run()
+            if case == 'repeat':
+                second = run()
+                assert first[0] == second[0]
+                assert all(torch.equal(v,second[1][k]) for k,v in first[1].items())
+            return
+        raise ValueError(case)
